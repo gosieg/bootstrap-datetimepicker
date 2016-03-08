@@ -577,6 +577,46 @@
                 return true;
             },
 
+            getInvalidReason = function(targetMoment, granularity){
+                if (!targetMoment.isValid()) {
+                    return "Invalid Date";
+                }
+                if (options.disabledDates && granularity === 'd' && isInDisabledDates(targetMoment)) {
+                    return "Disabled Date";
+                }
+                if (options.enabledDates && granularity === 'd' && !isInEnabledDates(targetMoment)) {
+                    return "Not Enabled Date";
+                }
+                if (options.minDate && targetMoment.isBefore(options.minDate, granularity)) {
+                    return "Too Early";
+                }
+                if (options.maxDate && targetMoment.isAfter(options.maxDate, granularity)) {
+                    return "Too Late";
+                }
+                if (options.daysOfWeekDisabled && granularity === 'd' && options.daysOfWeekDisabled.indexOf(targetMoment.day()) !== -1) {
+                    return "Day of Week Disabled";
+                }
+                if (options.disabledHours && (granularity === 'h' || granularity === 'm' || granularity === 's') && isInDisabledHours(targetMoment)) {
+                    return "Hour Disabled";
+                }
+                if (options.enabledHours && (granularity === 'h' || granularity === 'm' || granularity === 's') && !isInEnabledHours(targetMoment)) {
+                    return "Hour Not Enabled";
+                }
+                if (options.disabledTimeIntervals && (granularity === 'h' || granularity === 'm' || granularity === 's')) {
+                    var found = false;
+                    $.each(options.disabledTimeIntervals, function () {
+                        if (targetMoment.isBetween(this[0], this[1])) {
+                            found = true;
+                            return "Time Disabled";
+                        }
+                    });
+                    if (found) {
+                        return "Time Disabled";
+                    }
+                }
+                return null;
+            },
+
             fillMonths = function () {
                 var spans = [],
                     monthsShort = viewDate.clone().startOf('y').startOf('d');
@@ -865,7 +905,7 @@
                     targetMoment.minutes((Math.round(targetMoment.minutes() / options.stepping) * options.stepping) % 60).seconds(0);
                 }
 
-                if (isValid(targetMoment)) {
+                if (isValid(targetMoment,'d')) {
                     date = targetMoment;
                     viewDate = date.clone();
                     input.val(date.format(actualFormat));
@@ -883,7 +923,8 @@
                     }
                     notifyEvent({
                         type: 'dp.error',
-                        date: targetMoment
+                        date: targetMoment,
+                        reason: getInvalidReason(targetMoment,'d')
                     });
                 }
             },
